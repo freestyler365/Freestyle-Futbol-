@@ -24,9 +24,10 @@ python3 anuncios/scripts/generar_videos.py
 
 - Negro tinta `#0B0B0B`, blanco, rojo 365 `#E10600`, gris acero `#BEC2C7`.
 - Titulares en mayúsculas, Inter Display Black, interletrado cerrado; la palabra clave en rojo.
-- Etiqueta roja tipo "tag" arriba a la izquierda, firma **365 EVERYDAY FREESTYLE** arriba a la derecha.
+- Etiqueta roja tipo "tag" arriba a la izquierda, logo **365** arriba a la derecha.
 - Separador de eslabones de cadena como guiño al producto.
-- CTA en píldora: **PÍDELO EN FRE365TYLE.COM**.
+- CTA: **QR de WhatsApp** en tarjeta blanca + "ESCANEA Y PIDE POR WHATSAPP" (WhatsApp en verde) + fre365tyle.com como opción secundaria. El QR abre el catálogo: `https://wa.me/p/26215413071404277/5215623471950` (archivo en `fuentes/qr_whatsapp.png`, regenerado en alta resolución y verificado en las 12 imágenes y los cierres de video).
+- En Stories el QR queda arriba del 20 % inferior para que no lo tape la barra de "Responder".
 
 ## Ángulos (uno por creativo, para testear cuál vende)
 
@@ -45,19 +46,19 @@ python3 anuncios/scripts/generar_videos.py
 2. giro en la pared 365 · **"CUÉLGALO. CRÚZALO. LLÉVALO."**
 3. close-up de estoperoles · **"CADENA + ESTOPEROLES"**
 4. racimo de balones · **"FÚTBOL. BÁSQUET. FREESTYLE."**
-5. cierre · **"MANOS LIBRES. ESTILO COMPLETO."** + CTA
+5. cierre · **"MANOS LIBRES. ESTILO COMPLETO."** + QR de WhatsApp
 
 **V2 · Colección (11 s)**: dolor → orden → orgullo
 1. pared llena · **"¿TUS BALONES SIGUEN TIRADOS?"**
 2. racimo en la mano · **"DALES UN LUGAR."**
 3. giro · **"TU PARED. TU MUSEO."**
-4. cierre · **"TU COLECCIÓN MERECE UNA PARED."** + CTA
+4. cierre · **"TU COLECCIÓN MERECE UNA PARED."** + QR de WhatsApp
 
 **V3 · Tres estilos (11.9 s)**: catálogo con ritmo
 1. estoperoles · **"ELIGE TU NIVEL DE ACTITUD"**
 2. ELEMENTAL → BALANCE → VIRUS (fotos con paneo)
 3. giro · **"¿CUÁL ES EL TUYO?"**
-4. cierre · **"ELIGE EL TUYO."** + CTA
+4. cierre · **"ELIGE EL TUYO."** + QR de WhatsApp
 
 Los textos están en la zona segura (fuera del 14 % superior y del 20 % inferior en las escenas con texto grande), así que no los tapa la interfaz de Reels/TikTok. El audio es la pista de tu anuncio original. **Si es una canción comercial, cámbiala por un audio de la biblioteca de Meta/TikTok antes de pautar**, porque si no te pueden silenciar o rechazar el anuncio.
 
@@ -67,7 +68,7 @@ Los textos están en la zona segura (fuera del 14 % superior y del 20 % inferior
 > Deja de cargar el balón en la mano. 🙌⚽
 > El porta-balón 365 se cuelga cruzado con su correa: llegas a la cancha, al parque o al spot con las manos libres y tu balón asegurado con cadena y mosquetones.
 > 3 estilos: ELEMENTAL, BALANCE y VIRUS.
-> 👉 Pídelo en fre365tyle.com
+> 👉 Pídelo por WhatsApp: wa.me/p/26215413071404277/5215623471950
 
 **Texto principal B: identidad**
 > Tu balón también se viste. ⛓️🔥
@@ -92,7 +93,7 @@ Los textos están en la zona segura (fuera del 14 % superior y del 20 % inferior
 - Fútbol. Básquet. Freestyle.
 
 **Descripción:** Porta-balón + correa · 3 estilos
-**Botón:** Comprar
+**Botón:** Enviar mensaje de WhatsApp (o Comprar si mandas a la web)
 
 ## Copy para TikTok / Reels orgánico
 
