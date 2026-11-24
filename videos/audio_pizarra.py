@@ -2,13 +2,15 @@
 """Música de fondo + narración para video_pizarra.py y mezcla final.
 
 Uso: python3 audio_pizarra.py video_sin_audio.mp4 salida.mp4
-Requiere numpy, ffmpeg, espeak-ng, mbrola y la voz mexicana mbrola-mx2
+Con ELEVENLABS_API_KEY definida usa ElevenLabs; si no, requiere espeak-ng, mbrola y la voz mexicana mbrola-mx2
 (apt install espeak-ng mbrola mbrola-mx2).
 """
 import os
 import subprocess
 import sys
 import tempfile
+import json
+import urllib.request
 import wave
 
 import numpy as np
@@ -28,6 +30,34 @@ NARRACION = [
     "Solo necesitas un balón. ¡Empieza hoy!",
 ]
 VOZ = "mx2"
+
+# Si existe ELEVENLABS_API_KEY se usa ElevenLabs (voz natural); si no, mbrola como respaldo.
+ELEVEN_VOICE = os.environ.get("ELEVENLABS_VOICE_ID", "TX3LPaxmHKxFdv7VOQHJ")  # Liam (prediseñada, sirve en plan gratis)
+NARRACION_ELEVEN = [
+    "¿Por qué practicar freestyle fútbol?",
+    "Uno: control total del balón.",
+    "Dos: coordinación y equilibrio.",
+    "Tres: creatividad sin límites.",
+    "Solo necesitas un balón. ¡Empieza hoy!",
+]
+
+
+def tts_eleven(txt, out_mp3, prev="", nxt=""):
+    body = json.dumps({
+        "text": txt,
+        "model_id": "eleven_multilingual_v2",
+        "language_code": "es",
+        "previous_text": prev,
+        "next_text": nxt,
+        "voice_settings": {"stability": 0.45, "similarity_boost": 0.8, "style": 0.35,
+                           "use_speaker_boost": True, "speed": 1.08},
+    }).encode()
+    req = urllib.request.Request(
+        f"https://api.elevenlabs.io/v1/text-to-speech/{ELEVEN_VOICE}?output_format=mp3_44100_128",
+        data=body, headers={"xi-api-key": os.environ["ELEVENLABS_API_KEY"],
+                            "Content-Type": "application/json", "Accept": "audio/mpeg"})
+    with urllib.request.urlopen(req, timeout=60) as r, open(out_mp3, "wb") as fh:
+        fh.write(r.read())
 
 
 # ---------------- música ----------------
@@ -144,35 +174,46 @@ def write_wav(path, x):
 def voz(tmp):
     """Genera cada frase, la ajusta a < 2.6 s y la coloca al inicio de su escena."""
     filters, inputs = [], []
+    eleven = bool(os.environ.get("ELEVENLABS_API_KEY"))
     for i, txt in enumerate(NARRACION):
         raw = os.path.join(tmp, f"v{i}.wav")
-        # espeak-ng marca vocales tónicas como "e/", que las voces mbrola no traen: se limpian.
-        pho = subprocess.check_output(["espeak-ng", "-v", f"mb-{VOZ}", "-s", "160", "-q", "--pho", txt],
-                                      stderr=subprocess.DEVNULL, text=True)
-        pho = "\n".join(l.split("\t", 1)[0].rstrip("/") + ("\t" + l.split("\t", 1)[1] if "\t" in l else "")
-                        for l in pho.splitlines())
-        pho_path = os.path.join(tmp, f"v{i}.pho")
-        with open(pho_path, "w") as fh:
-            fh.write(pho + "\n")
-        subprocess.run(["mbrola", "-f", "1.08", f"/usr/share/mbrola/{VOZ}/{VOZ}", pho_path, raw],
-                       check=True, stderr=subprocess.DEVNULL)
+        if eleven:
+            frases = NARRACION_ELEVEN
+            raw = os.path.join(tmp, f"v{i}.mp3")
+            tts_eleven(frases[i], raw, frases[i - 1] if i else "", frases[i + 1] if i + 1 < len(frases) else "")
+        else:
+            synth_mbrola(txt, raw, tmp, i)
         d = float(subprocess.check_output(["ffprobe", "-v", "error", "-show_entries", "format=duration",
                                            "-of", "csv=p=0", raw]))
-        limit = 2.6 if i < len(NARRACION) - 1 else 2.75
-        tempo = max(1.0, d / limit)
+        limit = 2.7 if i < len(NARRACION) - 1 else 2.8
+        tempo = min(1.25, max(1.0, d / limit))
         start = i * SCENE + (0.2 if i else 0.15)
         inputs += ["-i", raw]
-        filters.append(f"[{i}:a]aresample={SR},atempo={tempo:.3f},adelay={int(start * 1000)}:all=1[a{i}]")
+        filters.append(f"[{i}:a]aresample={SR},silenceremove=start_periods=1:start_threshold=-45dB,"
+                       f"atempo={tempo:.3f},adelay={int(start * 1000)}:all=1[a{i}]")
     mix = "".join(f"[a{i}]" for i in range(len(NARRACION)))
-    # EQ para quitar lo metálico: menos graves sucios y agudos ásperos, un poco de cuerpo y eco corto
-    chain = (f"{mix}amix=inputs={len(NARRACION)}:normalize=0,"
-             "highpass=f=90,lowpass=f=7500,equalizer=f=200:t=q:w=1:g=3,equalizer=f=3000:t=q:w=1.5:g=2,"
-             "aecho=0.8:0.5:40:0.12,acompressor=threshold=-18dB:ratio=3:makeup=4,"
+    eq = ("highpass=f=80,acompressor=threshold=-20dB:ratio=2.5:makeup=3" if eleven else
+          "highpass=f=90,lowpass=f=7500,equalizer=f=200:t=q:w=1:g=3,equalizer=f=3000:t=q:w=1.5:g=2,"
+          "aecho=0.8:0.5:40:0.12,acompressor=threshold=-18dB:ratio=3:makeup=4")
+    chain = (f"{mix}amix=inputs={len(NARRACION)}:normalize=0,{eq},"
              f"apad,atrim=0:{DUR},aformat=channel_layouts=stereo[v]")
     out = os.path.join(tmp, "voz.wav")
     subprocess.run(["ffmpeg", "-y", "-loglevel", "error", *inputs, "-filter_complex",
                     ";".join(filters) + ";" + chain, "-map", "[v]", out], check=True)
     return out
+
+
+def synth_mbrola(txt, raw, tmp, i):
+    # espeak-ng marca vocales tónicas como "e/", que las voces mbrola no traen: se limpian.
+    pho = subprocess.check_output(["espeak-ng", "-v", f"mb-{VOZ}", "-s", "160", "-q", "--pho", txt],
+                                  stderr=subprocess.DEVNULL, text=True)
+    pho = "\n".join(l.split("\t", 1)[0].rstrip("/") + ("\t" + l.split("\t", 1)[1] if "\t" in l else "")
+                    for l in pho.splitlines())
+    pho_path = os.path.join(tmp, f"v{i}.pho")
+    with open(pho_path, "w") as fh:
+        fh.write(pho + "\n")
+    subprocess.run(["mbrola", "-f", "1.08", f"/usr/share/mbrola/{VOZ}/{VOZ}", pho_path, raw],
+                   check=True, stderr=subprocess.DEVNULL)
 
 
 def main():
