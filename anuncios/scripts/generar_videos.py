@@ -86,7 +86,7 @@ def endcard(name, headline_txt, accent=()):
     y = g.headline(d, headline_txt, (72, 1040, W - 144), 120, accent_words=accent)
     g.chain_rule(d, 72, y + 26, 460)
     y = g.body(d, "Porta-balón + correa · Fútbol · Básquet · Freestyle", (72, y + 80), W - 144, 38, g.STEEL)
-    g.cta(d, f"Pídelo en {g.URL}", y + 60, W, 40, bg=g.RED, fg=g.WHITE, center=False)
+    g.order_block(im, y + 60, W, qr=230)
     p = TMP / f"{name}.png"
     im.convert("RGB").save(p)
     return p

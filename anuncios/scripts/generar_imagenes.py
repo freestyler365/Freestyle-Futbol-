@@ -157,10 +157,41 @@ def cta(d, s, y, W, size=34, bg=WHITE, fg=INK, center=True, x=72):
     return y + ph
 
 
+WA_GREEN = (37, 211, 102)
+QR_PATH = SRC / "qr_whatsapp.png"   # https://wa.me/p/26215413071404277/5215623471950
+
+
+def order_block(im, y, W, qr=180, center=False, x=72):
+    """Bloque de pedido: QR de WhatsApp en tarjeta blanca + texto al lado.
+    Devuelve la coordenada y final."""
+    d = ImageDraw.Draw(im)
+    f1 = ImageFont.truetype(F_MONO, max(18, qr // 8))
+    f2 = ImageFont.truetype(F_BLACK, int(qr * 0.30))
+    f3 = ImageFont.truetype(F_SEMI, max(20, int(qr * 0.14)))
+    l1, l2a, l2b, l3 = "ESCANEA Y PIDE", "POR ", "WHATSAPP", f"o en {URL.lower()}"
+    pad = qr // 14
+    card = qr + pad * 2
+    tw = max(text_w(f1, l1, 2), f2.getlength(l2a + l2b), f3.getlength(l3))
+    gap = 30
+    x0 = int((W - (card + gap + tw)) // 2) if center else x
+    d.rounded_rectangle((x0, y, x0 + card, y + card), radius=pad * 2, fill=WHITE)
+    code = Image.open(QR_PATH).convert("RGB").resize((qr, qr), Image.NEAREST)
+    im.paste(code, (x0 + pad, y + pad))
+    tx = x0 + card + gap
+    th = f1.size + 10 + f2.size + 12 + f3.size
+    ty = y + (card - th) // 2
+    draw_tracked(d, (tx, ty), l1, f1, STEEL, 2)
+    ty += f1.size + 10
+    d.text((tx, ty - f2.size * 0.1), l2a, font=f2, fill=WHITE)
+    d.text((tx + f2.getlength(l2a), ty - f2.size * 0.1), l2b, font=f2, fill=WA_GREEN)
+    ty += f2.size + 12
+    d.text((tx, ty), l3, font=f3, fill=STEEL)
+    return y + card
+
+
 def brand(d, W, H, y=None, color=WHITE):
     """Firma 365 en la esquina superior derecha."""
     f = ImageFont.truetype(F_BLACK, 44)
-    fs = ImageFont.truetype(F_MONO, 16)
     y = 56 if y is None else y
     s1, s2, s3 = "3", "6", "5"
     total = f.getlength("365")
@@ -170,8 +201,6 @@ def brand(d, W, H, y=None, color=WHITE):
     d.text((x, y), s2, font=f, fill=RED)
     x += f.getlength(s2)
     d.text((x, y), s3, font=f, fill=color)
-    sub = "EVERYDAY FREESTYLE"
-    d.text((W - 72 - fs.getlength(sub), y + 54), sub, font=fs, fill=color)
 
 
 def chain_rule(d, x, y, w, color=STEEL):
@@ -205,7 +234,7 @@ def src_pared365():    # porta-balón colgado en la pared 365 (captura)
 
 
 def src_model(name):   # fotos 2000x2000 sin el título superior ni el logo
-    return load(f"foto_{name}.jpg", (330, 500, 1830, 1880))
+    return load(f"foto_{name}.jpg", (420, 500, 1880, 1880))
 
 
 # ---------- creativos ----------
@@ -214,23 +243,23 @@ def ad_manos_libres(fmt):
     im = grade(cover(src_puesto(), (W, H), (0.5, 0.35 if fmt == "feed" else 0.5)))
     im = im.convert("RGBA")
     im.alpha_composite(gradient((W, H), 150, 0, 0.0, 0.28))
-    im.alpha_composite(gradient((W, H), 0, 245, 0.48, 0.86))
+    im.alpha_composite(gradient((W, H), 0, 245, *((0.48, 0.86) if fmt == "feed" else (0.36, 0.7))))
     d = ImageDraw.Draw(im)
     tag(d, "Porta-balón + correa", (72, 64))
     brand(d, W, H)
-    y0 = H - (560 if fmt == "feed" else 700)
+    y0 = H - (670 if fmt == "feed" else 970)
     y = headline(d, "Manos libres. Estilo completo.", (72, y0, W - 144), 116,
                  accent_words=("LIBRES",))
     y = body(d, "Cuélgalo cruzado y llega a la cancha, al parque o al spot con tu balón listo.",
              (72, y + 30), W - 220, 36, STEEL)
-    cta(d, f"Pídelo en {URL}", y + 36, W, center=False)
+    order_block(im, y + 36, W)
     save(im, f"01_manos_libres_{fmt}")
 
 
 def ad_virus(fmt):
     W, H = SIZES[fmt]
     base = Image.new("RGBA", (W, H), INK + (255,))
-    photo_h = int(H * (0.66 if fmt == "feed" else 0.62))
+    photo_h = int(H * (0.56 if fmt == "feed" else 0.52))
     ph = grade(cover(src_model("virus"), (W, photo_h), (0.5, 0.3)), sharp=1.35)
     base.paste(ph, (0, 0))
     base.alpha_composite(gradient((W, H), 0, 255, (photo_h - 260) / H, photo_h / H))
@@ -242,7 +271,7 @@ def ad_virus(fmt):
     chain_rule(d, 72, y + 22, 420)
     y = body(d, "Triple línea de estoperoles + cadena metálica. El porta-balón más rudo de la colección.",
              (72, y + 70), W - 180, 34, STEEL)
-    cta(d, f"Pídelo en {URL}", y + 34, W, center=False)
+    order_block(base, y + 34, W)
     save(base, f"02_virus_{fmt}")
 
 
@@ -273,7 +302,7 @@ def ad_tres_estilos(fmt):
         ly = cy + ch + 22
         d.text((cx, ly), name, font=fl, fill=WHITE if i < 2 else RED)
         d.text((cx, ly + 46), desc.upper(), font=fs, fill=STEEL)
-    cta(d, f"Elige el tuyo en {URL}", H - (150 if fmt == "feed" else 230), W, 32)
+    order_block(base, H - (250 if fmt == "feed" else 440), W, center=True)
     save(base, f"03_tres_estilos_{fmt}")
 
 
@@ -281,46 +310,46 @@ def ad_coleccion(fmt):
     W, H = SIZES[fmt]
     im = grade(cover(load("frame_7.5.png"), (W, H), (0.5, 0.5)), 1.1, 1.12, 1.4).convert("RGBA")
     im.alpha_composite(gradient((W, H), 225, 0, 0.0, 0.42))
-    im.alpha_composite(gradient((W, H), 0, 200, 0.7, 1.0))
+    im.alpha_composite(gradient((W, H), 0, 235, 0.6, 0.95))
     d = ImageDraw.Draw(im)
     brand(d, W, H)
     tag(d, "Para coleccionistas", (72, 64))
     y = headline(d, "Tu colección merece una pared.", (72, 160, W - 144), 116,
                  accent_words=("PARED.",))
     body(d, "Cuélgalos. Exhíbelos. Llévalos.", (72, y + 30), W - 144, 40, WHITE, F_BOLD)
-    cta(d, f"Arma tu pared en {URL}", H - (160 if fmt == "feed" else 240), W, 32)
+    order_block(im, H - (270 if fmt == "feed" else 460), W, center=True)
     save(im, f"04_coleccion_{fmt}")
 
 
 def ad_todos_los_balones(fmt):
     W, H = SIZES[fmt]
     im = grade(cover(load("frame_11.0.png"), (W, H), (0.5, 0.4)), 1.1, 1.08, 1.4).convert("RGBA")
-    im.alpha_composite(gradient((W, H), 0, 245, 0.55, 0.9))
+    im.alpha_composite(gradient((W, H), 0, 245, *((0.55, 0.9) if fmt == "feed" else (0.42, 0.74))))
     d = ImageDraw.Draw(im)
     brand(d, W, H)
-    y0 = H - (470 if fmt == "feed" else 640)
+    y0 = H - (580 if fmt == "feed" else 910)
     fb = ImageFont.truetype(F_BLACK, 96 if fmt == "feed" else 104)
     y = y0
     for word, col in (("FÚTBOL.", WHITE), ("BÁSQUET.", WHITE), ("FREESTYLE.", RED)):
         draw_tracked(d, (72, y), word, fb, col, -2)
         y += int(fb.size * 0.92)
     y = body(d, "Un porta-balón para todos tus balones.", (72, y + 16), W - 144, 36, STEEL)
-    cta(d, f"Pídelo en {URL}", y + 30, W, center=False)
+    order_block(im, y + 30, W)
     save(im, f"05_todos_los_balones_{fmt}")
 
 
 def ad_declaracion(fmt):
     W, H = SIZES[fmt]
     im = grade(cover(src_pared365(), (W, H), (0.5, 0.55)), 1.08, 1.1, 1.3).convert("RGBA")
-    im.alpha_composite(gradient((W, H), 0, 250, 0.5, 0.88))
+    im.alpha_composite(gradient((W, H), 0, 250, *((0.5, 0.88) if fmt == "feed" else (0.38, 0.74))))
     d = ImageDraw.Draw(im)
     tag(d, "Hecho para freestylers", (72, 64))
-    y0 = H - (520 if fmt == "feed" else 660)
+    y0 = H - (630 if fmt == "feed" else 930)
     y = headline(d, "No es una red. Es una declaración.", (72, y0, W - 144), 104,
                  accent_words=("DECLARACIÓN.",))
     y = body(d, "Correas, cadena y mosquetones. Tu balón, colgado con estilo.",
              (72, y + 30), W - 180, 34, STEEL)
-    cta(d, f"Pídelo en {URL}", y + 32, W, center=False)
+    order_block(im, y + 32, W)
     save(im, f"06_declaracion_{fmt}")
 
 
